@@ -128,6 +128,12 @@
     }
 
     .choice-btn:hover,.dp-mode button:hover{border-color:#b7c3d2;}
+    .choice-btn:disabled{
+      opacity:.35;
+      cursor:not-allowed;
+      background:#f4f6f8;
+      color:#98a2b3;
+    }
 
     .choice-btn.active,.dp-mode button.active{
       background:var(--navy);
@@ -308,7 +314,8 @@
         <p class="tier-note">
           <strong>1–3 mos: 20%</strong> ·
           <strong>4–6 mos: 25%</strong> ·
-          <strong>7–12 mos: 30%</strong>
+          <strong>7–12 mos: 30%</strong> ·
+          <strong>13–24 mos: 35% (₱60,000 pataas)</strong>
         </p>
       </div>
 
@@ -416,12 +423,14 @@
     let dpMode = 'standard';
     let lastQuote = null;
 
-    for (let m = 1; m <= 12; m++) {
+    for (let m = 1; m <= 24; m++) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.textContent = m;
       btn.dataset.month = m;
       btn.className = 'choice-btn' + (m === selectedMonths ? ' active' : '');
+      btn.disabled = m > 12;
+      if (m > 12) btn.title = 'Available for gadget amounts of ₱60,000 or more';
 
       btn.addEventListener('click', () => {
         selectedMonths = m;
@@ -461,7 +470,24 @@
     function rateForMonths(months) {
       if (months <= 3) return 0.20;
       if (months <= 6) return 0.25;
-      return 0.30;
+      if (months <= 12) return 0.30;
+      return 0.35;
+    }
+
+    function updateTermAvailability(amount) {
+      const eligibleForSpecialRate = Number.isFinite(amount) && amount >= 60000;
+
+      document.querySelectorAll('#monthsRow button').forEach(btn => {
+        const month = Number(btn.dataset.month);
+        if (month > 12) btn.disabled = !eligibleForSpecialRate;
+      });
+
+      if (!eligibleForSpecialRate && selectedMonths > 12) {
+        selectedMonths = 12;
+        document.querySelectorAll('#monthsRow button').forEach(btn => {
+          btn.classList.toggle('active', Number(btn.dataset.month) === selectedMonths);
+        });
+      }
     }
 
     function standardDpForAmount(amount) {
@@ -494,6 +520,7 @@
 
     function compute() {
       const unitAmount = Number.parseFloat(unitAmountEl.value);
+      updateTermAvailability(unitAmount);
 
       if (!Number.isFinite(unitAmount) || unitAmount <= 0) {
         clearOutputs();
